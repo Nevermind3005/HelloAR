@@ -1,6 +1,8 @@
+using System;
 using UnityEngine;
-[RequireComponent(typeof(Rigidbody))]
 
+[Obsolete]
+[RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(StencilBufferWriter))]
 public class Interactable : MonoBehaviour, IInteractable
 {

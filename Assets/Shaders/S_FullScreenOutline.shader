@@ -110,27 +110,60 @@ Shader "Outline/S_FullScreenOutline"
                 return (edgeX + edgeY) * 0.5;
             }
             
-            float4 Frag(Varyings input) : SV_Target
-            {
-                float4 originalColor = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, input.texcoord);
-                float2 texelSize = _OutlineThickness * float2(1.0 / _ScreenParams.x, 1.0 / _ScreenParams.y);
-                
-                float centerDepth = SampleSceneDepth(input.texcoord);
-                if (centerDepth >= 0.99999)
-                {
-                    return originalColor;
-                }
-                
-                float depthEdge = DetectDepthEdge(input.texcoord, texelSize) * _DepthSensitivity;
-                float normalEdge = DetectNormalEdge(input.texcoord, texelSize) * _NormalSensitivity;
-                
-                float combinedEdge = max(depthEdge, normalEdge);
-                combinedEdge = smoothstep(_EdgeThreshold, _EdgeThreshold + 0.05, combinedEdge);
-                combinedEdge = saturate(combinedEdge * 2.0);
-                
-                float3 finalColor = lerp(originalColor.rgb, _OutlineColor.rgb * 10.0, combinedEdge);
+            /*
+            ** Sobel Edge Detect with Normal Edge Detect
+            */
 
-                return float4(finalColor, originalColor.a);
+            // float4 Frag(Varyings input) : SV_Target
+            // {
+            //     float4 originalColor = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, input.texcoord);
+            //     float2 texelSize = _OutlineThickness * float2(1.0 / _ScreenParams.x, 1.0 / _ScreenParams.y);
+                
+            //     float centerDepth = SampleSceneDepth(input.texcoord);
+            //     if (centerDepth >= 0.99999)
+            //     {
+            //         return originalColor;
+            //     }
+                
+            //     float depthEdge = DetectDepthEdge(input.texcoord, texelSize) * _DepthSensitivity;
+            //     float normalEdge = DetectNormalEdge(input.texcoord, texelSize) * _NormalSensitivity;
+                
+            //     float combinedEdge = max(depthEdge, normalEdge);
+            //     combinedEdge = smoothstep(_EdgeThreshold, _EdgeThreshold + 0.05, combinedEdge);
+            //     combinedEdge = saturate(combinedEdge * 2.0);
+                
+            //     float3 finalColor = lerp(originalColor.rgb, _OutlineColor.rgb * 10.0, combinedEdge);
+
+            //     return float4(finalColor, originalColor.a);
+            // }
+
+            float LinDepth(float2 uv)
+            {
+                return LinearEyeDepth(SampleSceneDepth(uv), _ZBufferParams);
+            }
+
+            /*
+            ** Laplacian Edge Detect
+            */
+
+            half4 Frag(Varyings input) : SV_Target
+            {
+                float2 uv = input.texcoord;
+                half4 original = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv);
+
+                float2 t = _OutlineThickness * (_ScreenParams.zw - 1.0);
+
+                float c = LinDepth(uv);
+                float l = LinDepth(uv + float2(-t.x, 0));
+                float r = LinDepth(uv + float2( t.x, 0));
+                float u = LinDepth(uv + float2(0,  t.y));
+                float d = LinDepth(uv + float2(0, -t.y));
+
+                float edge = (abs(l + r - 2.0 * c) + abs(u + d - 2.0 * c)) / c;
+                edge *= _DepthSensitivity;
+
+                half e = saturate(smoothstep(_EdgeThreshold, _EdgeThreshold + 0.05f, edge) * 2.0);
+                return half4(lerp(original.rgb, _OutlineColor.rgb, e), original.a);
             }
             ENDHLSL
         }

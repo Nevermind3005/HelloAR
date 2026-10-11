@@ -19,7 +19,6 @@ public class ARInteractor : MonoBehaviour
 
         if (Physics.Raycast(m_camera.transform.position, direction, out RaycastHit hit, float.MaxValue, m_ineractableLayerMask))
         {
-            Debug.Log("Hit");
             if (hit.collider.TryGetComponent<IInteractable>(out var interactable))
             {
                 interactable.OnInteract();

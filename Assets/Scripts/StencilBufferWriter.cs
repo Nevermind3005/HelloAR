@@ -17,9 +17,6 @@ public class StencilBufferWriter : MonoBehaviour
 
     public void SetStencil(int stencilMaskValue)
     {
-        Debug.Log("Settign Stencil Value");
         m_stencilMaterial.SetInt(StencilMaskId, stencilMaskValue);
-        int stencilInt = m_stencilMaterial.GetInt(StencilMaskId);
-        Debug.Log(stencilInt);
     }
 }
